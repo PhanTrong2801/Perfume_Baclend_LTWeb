@@ -1,5 +1,5 @@
 # Sử dụng PHP 8.3
-FROM php:8.3-apache
+FROM php:8.4-apache
 
 # 1. Cài đặt thư viện hệ thống & Extensions
 # Thêm 'opcache' để tăng tốc website PHP lên rất nhiều
