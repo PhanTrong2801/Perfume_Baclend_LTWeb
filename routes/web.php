@@ -24,8 +24,6 @@ Route::get('/install-db', function () {
         $migrateOutput = Artisan::output();
 
         // 2. Chạy Seed (Đổ dữ liệu mẫu)
-        // Lưu ý: Đảm bảo bạn đã có file DatabaseSeeder.php chuẩn
-        Artisan::call('db:seed --force');
         $seedOutput = Artisan::output();
 
         return "<h1>Cài đặt thành công!</h1>" .
@@ -34,5 +32,16 @@ Route::get('/install-db', function () {
 
     } catch (\Exception $e) {
         return "<h1>Lỗi rồi!</h1><p>" . $e->getMessage() . "</p>";
+    }
+});
+
+Route::get('/run-seed', function () {
+    try {
+        // Chạy lệnh db:seed (Thêm --force để chạy được trên production)
+        Artisan::call('db:seed --force');
+        
+        return "<h1>Đã chạy Seeder thành công!</h1><p>" . nl2br(Artisan::output()) . "</p>";
+    } catch (\Exception $e) {
+        return "<h1>Lỗi:</h1>" . $e->getMessage();
     }
 });
