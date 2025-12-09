@@ -1,8 +1,7 @@
-# Sử dụng PHP 8.3
+# Sử dụng PHP 8.4 (Khớp với Laravel 12)
 FROM php:8.4-apache
 
 # 1. Cài đặt thư viện hệ thống & Extensions
-# Thêm 'opcache' để tăng tốc website PHP lên rất nhiều
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
@@ -20,8 +19,11 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-# 4. Copy cấu hình PHP chuẩn cho Production (Quan trọng)
-# File này chứa cấu hình tối ưu sẵn của PHP
+# --- QUAN TRỌNG: SỬA LỖI 404 NOT FOUND ---
+# Cho phép Laravel sử dụng file .htaccess để điều hướng route
+RUN sed -ri -e 's!AllowOverride None!AllowOverride All!g' /etc/apache2/apache2.conf
+
+# 4. Copy cấu hình PHP chuẩn cho Production
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 # 5. Cài Composer
@@ -34,15 +36,16 @@ WORKDIR /var/www/html
 COPY . .
 
 # 8. Cài đặt gói thư viện
-# Bỏ --ignore-platform-reqs để đảm bảo môi trường thực tế đủ extension
-# Thêm --no-scripts để tránh lỗi chạy lệnh artisan khi chưa có .env
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Thêm --ignore-platform-reqs để tránh lỗi version nhỏ nhặt trên cloud
+RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-# 9. Cấp quyền (Quan trọng cho Render)
-# Render đôi khi chạy user ngẫu nhiên, nhưng chown www-data vẫn là chuẩn nhất cho Apache
+# 9. Cấp quyền
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
-# 10. Chạy lệnh migrate và khởi động Apache khi container start
-# Tạo file script entrypoint ảo hoặc chạy trực tiếp
-CMD bash -c "php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"
+# 10. Startup Command (Tự động Migrate & Cache)
+# Khi server khởi động:
+# 1. Chạy migrate (tạo bảng database tự động)
+# 2. Cache config/route để website chạy nhanh hơn
+# 3. Bật Apache
+CMD bash -c "php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"
