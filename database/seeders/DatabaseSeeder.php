@@ -51,7 +51,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Male',
             'brand_id' => $diorId,
             'category_id' => $woodyId,
-            'thumbnail' => 'https://fado.vn/blog/wp-content/uploads/2019/10/nuoc-hoa-dior-sauvage-gia-bao-nhieu-1.jpg',
+            'thumbnail' => 'https://product.hstatic.net/1000340570/product/sauvage-100ml-edp_3377f47814cc46f2b6a467292480284a_master.jpg',
         ]);
 
         // Tạo biến thể cho Dior Sauvage (60ml và 100ml)
@@ -67,7 +67,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Female',
             'brand_id' => $chanelId,
             'category_id' => $floralId,
-            'thumbnail' => 'https://product.hstatic.net/1000340570/product/chanel-no5-edp-100ml_a6e82064119842798782c5f949c51236_master.jpg',
+            'thumbnail' => 'https://orchard.vn/wp-content/uploads/2014/06/chanel-no5-edp_7.jpg',
         ]);
 
         // Tạo biến thể cho Chanel No.5
