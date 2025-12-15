@@ -19,12 +19,17 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-# --- QUAN TRỌNG: SỬA LỖI 404 NOT FOUND ---
-# Cho phép Laravel sử dụng file .htaccess để điều hướng route
+# --- QUAN TRỌNG 1: SỬA LỖI 404 NOT FOUND ---
 RUN sed -ri -e 's!AllowOverride None!AllowOverride All!g' /etc/apache2/apache2.conf
 
-# 4. Copy cấu hình PHP chuẩn cho Production
+# 4. Copy cấu hình PHP chuẩn
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# --- QUAN TRỌNG 2: TĂNG GIỚI HẠN UPLOAD (THÊM ĐOẠN NÀY) ---
+# Tạo file cấu hình riêng để ghi đè giới hạn 2MB mặc định
+RUN echo "upload_max_filesize = 64M" > /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size = 64M" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini
 
 # 5. Cài Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -36,16 +41,12 @@ WORKDIR /var/www/html
 COPY . .
 
 # 8. Cài đặt gói thư viện
-# Thêm --ignore-platform-reqs để tránh lỗi version nhỏ nhặt trên cloud
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-# 9. Cấp quyền
+# 9. Cấp quyền (Sửa thành 777 cho storage để chắc chắn không lỗi quyền ghi trên Render)
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 storage bootstrap/cache
+    && chmod -R 777 storage bootstrap/cache
 
-# 10. Startup Command (Tự động Migrate & Cache)
-# Khi server khởi động:
-# 1. Chạy migrate (tạo bảng database tự động)
-# 2. Cache config/route để website chạy nhanh hơn
-# 3. Bật Apache
-CMD bash -c "php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground && php artisan storage:link"
+# 10. Startup Command
+# Thêm 'php artisan storage:link' vào đây là CHUẨN để fix lỗi ảnh không hiện
+CMD bash -c "php artisan migrate --force && php artisan config:clear && php artisan route:cache && php artisan view:cache && php artisan storage:link && apache2-foreground"
