@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminOrderController;
+use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
@@ -44,5 +45,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Quản lý đơn hàng
     Route::get('/orders', [AdminOrderController::class, 'index']);
     Route::put('/orders/{id}/status', [AdminOrderController::class, 'updateStatus']);
+
+    // --- QUẢN LÝ SẢN PHẨM ---
+     Route::get('/products/create-info', [AdminProductController::class, 'getFormData']); 
+    Route::apiResource('products', AdminProductController::class);
 
 });
