@@ -48,4 +48,4 @@ RUN chown -R www-data:www-data /var/www/html \
 # 1. Chạy migrate (tạo bảng database tự động)
 # 2. Cache config/route để website chạy nhanh hơn
 # 3. Bật Apache
-CMD bash -c "php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"
+CMD bash -c "php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground && php artisan storage:link"
