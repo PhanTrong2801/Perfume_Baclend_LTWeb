@@ -8,9 +8,8 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Brand;
 use App\Models\Category;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class AdminProductController extends Controller
 {
@@ -27,14 +26,13 @@ class AdminProductController extends Controller
         return response()->json(['brands' => $brands, 'categories' => $categories]);
     }
 
-    //  Lấy chi tiết 1 sản phẩm 
     public function show($id)
     {
         $product = Product::with(['variants', 'brand', 'category'])->findOrFail($id);
         return response()->json($product);
     }
 
-    //  THÊM SẢN PHẨM MỚI
+    //  HÀM THÊM MỚI 
     public function store(Request $request)
     {
         $request->validate([
@@ -47,15 +45,13 @@ class AdminProductController extends Controller
         return DB::transaction(function () use ($request) {
             $imageUrl = '';
             if ($request->hasFile('thumbnail')) {
-               // Upload trực tiếp lên Cloudinary
+                // Upload lên Cloudinary
                 $uploadedFileUrl = Cloudinary::upload($request->file('thumbnail')->getRealPath(), [
                     'folder' => 'products'
                 ])->getSecurePath();
-
                 $imageUrl = $uploadedFileUrl;
             }
 
-    
             $product = Product::create([
                 'product_name' => $request->product_name,
                 'description' => $request->description,
@@ -82,23 +78,25 @@ class AdminProductController extends Controller
         });
     }
 
-
+    //  HÀM CẬP NHẬT 
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
 
         return DB::transaction(function () use ($request, $product) {
-            //  Cập nhật thông tin cơ bản
+
             $dataToUpdate = $request->only(['product_name', 'description', 'gender', 'brand_id', 'category_id']);
             
             if ($request->hasFile('thumbnail')) {
-                $path = $request->file('thumbnail')->store('products', 'public');
-                $dataToUpdate['thumbnail'] = asset('storage/' . $path);
+                $uploadedFileUrl = Cloudinary::upload($request->file('thumbnail')->getRealPath(), [
+                    'folder' => 'products'
+                ])->getSecurePath();
+                $dataToUpdate['thumbnail'] = $uploadedFileUrl;
             }
 
             $product->update($dataToUpdate);
 
-            // Cập nhật biến thể 
+            // Cập nhật biến thể
             if ($request->variants) {
                 $variants = json_decode($request->variants, true);
                 $existingVariantIds = $product->variants->pluck('variant_id')->toArray();
@@ -123,6 +121,7 @@ class AdminProductController extends Controller
                         ]);
                     }
                 }
+                
                 $idsToDelete = array_diff($existingVariantIds, $submittedVariantIds);
                 if (!empty($idsToDelete)) {
                     try {
@@ -136,13 +135,11 @@ class AdminProductController extends Controller
         });
     }
 
-    //  XÓA SẢN PHẨM
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
         ProductVariant::where('product_id', $id)->delete();
         $product->delete();
-        
         return response()->json(['message' => 'Đã xóa sản phẩm']);
     }
 }
