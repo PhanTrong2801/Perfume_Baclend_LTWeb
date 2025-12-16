@@ -8,9 +8,8 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Brand;
 use App\Models\Category;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Storage; // Dùng cái này thay cho Cloudinary
 
 class AdminProductController extends Controller
 {
@@ -27,14 +26,13 @@ class AdminProductController extends Controller
         return response()->json(['brands' => $brands, 'categories' => $categories]);
     }
 
-    //  Lấy chi tiết 1 sản phẩm 
     public function show($id)
     {
         $product = Product::with(['variants', 'brand', 'category'])->findOrFail($id);
         return response()->json($product);
     }
 
-    //  THÊM SẢN PHẨM MỚI
+    // --- HÀM THÊM MỚI (Lưu Local) ---
     public function store(Request $request)
     {
         $request->validate([
@@ -46,16 +44,16 @@ class AdminProductController extends Controller
 
         return DB::transaction(function () use ($request) {
             $imageUrl = '';
+            
+            // Xử lý lưu ảnh vào thư mục public/products
             if ($request->hasFile('thumbnail')) {
-               // Upload trực tiếp lên Cloudinary
-                $uploadedFileUrl = Cloudinary::upload($request->file('thumbnail')->getRealPath(), [
-                'folder' => 'products'
-            ])->getSecurePath();
-
-            $imageUrl = $uploadedFileUrl;
+                $file = $request->file('thumbnail');
+                // Lưu vào storage/app/public/products
+                $path = $file->store('products', 'public'); 
+                // Tạo đường dẫn truy cập (VD: http://localhost:8000/storage/products/abc.jpg)
+                $imageUrl = asset('storage/' . $path);
             }
 
-    
             $product = Product::create([
                 'product_name' => $request->product_name,
                 'description' => $request->description,
@@ -66,107 +64,96 @@ class AdminProductController extends Controller
             ]);
 
             if ($request->variants) {
-                $variants = json_decode($request->variants, true); 
-                foreach ($variants as $v) {
-                    ProductVariant::create([
-                        'product_id' => $product->product_id,
-                        'volume' => $v['volume'],
-                        'price' => $v['price'],
-                        'stock_quantity' => $v['stock_quantity'],
-                        'sku' => $v['sku'] ?? $product->product_id . '-' . $v['volume']
-                    ]);
-                }
+                $this->saveVariants($product, $request->variants);
             }
 
             return response()->json(['message' => 'Thêm sản phẩm thành công!']);
         });
     }
 
+    // --- HÀM CẬP NHẬT (Lưu Local) ---
+    public function update(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
 
-   public function update(Request $request, $id)
-{
-    $product = Product::findOrFail($id);
-
-    // 1. Chuẩn bị dữ liệu Update
-    $dataToUpdate = $request->only(['product_name', 'description', 'gender', 'brand_id', 'category_id']);
-
-    // 2. Xử lý Upload ảnh (Làm TRƯỚC khi gọi DB Transaction)
-    if ($request->hasFile('thumbnail')) {
-        try {
-            // Upload ảnh mới
-            $uploadedFileUrl = Cloudinary::upload($request->file('thumbnail')->getRealPath(), [
-                'folder' => 'products'
-            ])->getSecurePath();
+        return DB::transaction(function () use ($request, $product) {
+            $dataToUpdate = $request->only(['product_name', 'description', 'gender', 'brand_id', 'category_id']);
             
-            // Gán link mới vào data
-            $dataToUpdate['thumbnail'] = $uploadedFileUrl;
+            if ($request->hasFile('thumbnail')) {
+                // 1. Xóa ảnh cũ nếu có (để dọn rác)
+                if ($product->thumbnail) {
+                    // Cắt lấy phần path sau chữ storage/
+                    $oldPath = str_replace(asset('storage/'), '', $product->thumbnail);
+                    Storage::disk('public')->delete($oldPath);
+                }
 
-            // (Tùy chọn) Xóa ảnh cũ trên Cloudinary nếu muốn tiết kiệm dung lượng
-            // Cần lấy public_id từ link cũ để xóa, logic này hơi phức tạp nên có thể bỏ qua nếu không cần thiết ngay.
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Lỗi upload ảnh: ' . $e->getMessage()], 500);
-        }
+                // 2. Lưu ảnh mới
+                $file = $request->file('thumbnail');
+                $path = $file->store('products', 'public');
+                $dataToUpdate['thumbnail'] = asset('storage/' . $path);
+            }
+
+            $product->update($dataToUpdate);
+
+            if ($request->variants) {
+                $this->saveVariants($product, $request->variants, true);
+            }
+
+            return response()->json(['message' => 'Cập nhật thành công!']);
+        });
     }
 
-    // 3. Bây giờ mới mở Transaction để Update DB (Chạy cực nhanh)
-    return DB::transaction(function () use ($request, $product, $dataToUpdate) {
-        
-        // Update thông tin sản phẩm
-        $product->update($dataToUpdate);
+    // --- HÀM HỖ TRỢ LƯU BIẾN THỂ (Giữ nguyên logic cũ) ---
+    private function saveVariants($product, $variantsJson, $isUpdate = false)
+    {
+        $variants = json_decode($variantsJson, true);
+        if (!is_array($variants)) return;
 
-        // Cập nhật biến thể (Logic giữ nguyên vì đã ổn)
-        if ($request->variants) {
-            $variants = json_decode($request->variants, true);
+        $existingIds = $isUpdate ? $product->variants->pluck('variant_id')->toArray() : [];
+        $submittedIds = [];
+
+        foreach ($variants as $v) {
+            $sku = $v['sku'] ?? $product->product_id . '-' . $v['volume'];
             
-            // Kiểm tra nếu giải mã JSON thất bại
-            if (!is_array($variants)) {
-                 // Xử lý lỗi hoặc bỏ qua
-                 $variants = [];
+            if ($isUpdate && isset($v['variant_id'])) {
+                $submittedIds[] = $v['variant_id'];
+                ProductVariant::where('variant_id', $v['variant_id'])->update([
+                    'volume' => $v['volume'], 
+                    'price' => $v['price'], 
+                    'stock_quantity' => $v['stock_quantity'], 
+                    'sku' => $sku
+                ]);
+            } else {
+                ProductVariant::create([
+                    'product_id' => $product->product_id,
+                    'volume' => $v['volume'], 
+                    'price' => $v['price'], 
+                    'stock_quantity' => $v['stock_quantity'], 
+                    'sku' => $sku
+                ]);
             }
+        }
 
-            $existingVariantIds = $product->variants->pluck('variant_id')->toArray();
-            $submittedVariantIds = [];
-
-            foreach ($variants as $v) {
-                // Tạo SKU tự động nếu thiếu
-                $sku = $v['sku'] ?? ($product->product_id . '-' . $v['volume']);
-
-                if (isset($v['variant_id'])) {
-                    $submittedVariantIds[] = $v['variant_id'];
-                    ProductVariant::where('variant_id', $v['variant_id'])->update([
-                        'volume' => $v['volume'],
-                        'price' => $v['price'],
-                        'stock_quantity' => $v['stock_quantity'],
-                        'sku' => $sku
-                    ]);
-                } else {
-                    ProductVariant::create([
-                        'product_id' => $product->product_id,
-                        'volume' => $v['volume'],
-                        'price' => $v['price'],
-                        'stock_quantity' => $v['stock_quantity'],
-                        'sku' => $sku
-                    ]);
-                }
-            }
-            
-            $idsToDelete = array_diff($existingVariantIds, $submittedVariantIds);
+        if ($isUpdate) {
+            $idsToDelete = array_diff($existingIds, $submittedIds);
             if (!empty($idsToDelete)) {
                 ProductVariant::destroy($idsToDelete);
             }
         }
+    }
 
-        return response()->json(['message' => 'Cập nhật thành công!']);
-    });
-}
-
-    //  XÓA SẢN PHẨM
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
-        ProductVariant::where('product_id', $id)->delete();
-        $product->delete();
         
+        // Xóa ảnh khi xóa sản phẩm
+        if ($product->thumbnail) {
+             $oldPath = str_replace(asset('storage/'), '', $product->thumbnail);
+             Storage::disk('public')->delete($oldPath);
+        }
+
+        $product->variants()->delete();
+        $product->delete();
         return response()->json(['message' => 'Đã xóa sản phẩm']);
     }
 }

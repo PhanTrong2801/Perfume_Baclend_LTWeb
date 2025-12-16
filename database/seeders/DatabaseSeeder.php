@@ -100,7 +100,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Female',
             'brand_id' => $gucciId,
             'category_id' => $floralId,
-            'thumbnail' => 'https://product.hstatic.net/1000340570/product/gucci-bloom-100ml_07b55f191b264e1c9e821104323675a3_master.jpg',
+            'thumbnail' => 'https://missi.com.vn/wp-content/uploads/2020/01/Gucci-Bloom-Ambrosia-Di-Fiori-EDP.jpg',
         ]);
         DB::table('product_variants')->insert([
             ['product_id' => $p3, 'volume' => '30ml', 'price' => 1800000, 'stock_quantity' => 40, 'sku' => 'GB-30'],
@@ -114,7 +114,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Male',
             'brand_id' => $versaceId,
             'category_id' => $freshId,
-            'thumbnail' => 'https://product.hstatic.net/1000340570/product/versace-eros-men-edt-100ml_3345d83669f64c1889073748238612f0_master.jpg',
+            'thumbnail' => 'https://missi.com.vn/wp-content/uploads/2019/08/nuoc-hoa-versace-eros-flame.jpg',
         ]);
         DB::table('product_variants')->insert([
             ['product_id' => $p4, 'volume' => '50ml', 'price' => 1600000, 'stock_quantity' => 60, 'sku' => 'VE-50'],
@@ -128,7 +128,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Female',
             'brand_id' => $yslId,
             'category_id' => $orientalId,
-            'thumbnail' => 'https://product.hstatic.net/1000340570/product/ysl-libre-edp-90ml_1b73489278784d089163625f3c9e6d03_master.jpg',
+            'thumbnail' => 'https://product.hstatic.net/1000025647/product/oa_ysl_lebre_le_parfume-min__1__88cc9cad41c749d183dc49668696bedb_large_f630ee35f73e497eb59c43ec3cd46993.jpg',
         ]);
         DB::table('product_variants')->insert([
             ['product_id' => $p5, 'volume' => '50ml', 'price' => 2900000, 'stock_quantity' => 30, 'sku' => 'YSL-50'],
@@ -142,7 +142,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Unisex',
             'brand_id' => $tomFordId,
             'category_id' => $orientalId,
-            'thumbnail' => 'https://product.hstatic.net/1000340570/product/tom-ford-tobacco-vanille-100ml_61c0d7575971485698502395642646c8_master.jpg',
+            'thumbnail' => 'https://cdn.vuahanghieu.com/unsafe/0x900/left/top/smart/filters:quality(90)/https://admin.vuahanghieu.com/upload/product/2021/10/nuoc-hoa-tom-ford-tobacco-vanille-eau-de-parfum-100ml-615e75e8bc567-07102021112200.jpg',
         ]);
         DB::table('product_variants')->insert([
             ['product_id' => $p6, 'volume' => '50ml', 'price' => 5500000, 'stock_quantity' => 10, 'sku' => 'TF-50'],
@@ -156,7 +156,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Male',
             'brand_id' => $diorId,
             'category_id' => $citrusId,
-            'thumbnail' => 'https://product.hstatic.net/1000340570/product/dior-homme-sport-2021-125ml_4b341646270b43538663884852928509_master.jpg',
+            'thumbnail' => 'https://cdn.vuahanghieu.com/unsafe/0x900/left/top/smart/filters:quality(90)/https://admin.vuahanghieu.com/upload/product/2023/12/nuoc-hoa-nam-dior-homme-sport-edt-125ml-656d3844a1c07-04122023092404.jpg',
         ]);
         DB::table('product_variants')->insert([
             ['product_id' => $p7, 'volume' => '75ml', 'price' => 2400000, 'stock_quantity' => 35, 'sku' => 'DHS-75'],
@@ -170,7 +170,7 @@ class DatabaseSeeder extends Seeder
             'gender' => 'Male',
             'brand_id' => $chanelId,
             'category_id' => $woodyId,
-            'thumbnail' => 'https://product.hstatic.net/1000340570/product/bleu-de-chanel-parfum-100ml_f8b444733682496ba458055667794144_master.jpg',
+            'thumbnail' => 'https://cdn.vuahanghieu.com/unsafe/0x900/left/top/smart/filters:quality(90)/https://admin.vuahanghieu.com/upload/product/2025/09/set-nuoc-hoa-nam-chanel-bleu-de-chanel-l-exclusif-parfum-100ml-5ml-68c92da46a600-16092025162804.jpg',
         ]);
         DB::table('product_variants')->insert([
             ['product_id' => $p8, 'volume' => '50ml', 'price' => 3100000, 'stock_quantity' => 40, 'sku' => 'BDC-50'],
