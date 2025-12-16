@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB; // Dùng transaction cho an toàn
 
 class OrderController extends Controller
 {
-    // 1. ĐẶT HÀNG (CHECKOUT)
+    //  ĐẶT HÀNG 
     public function checkout(Request $request)
     {
         $request->validate([
@@ -30,33 +30,30 @@ class OrderController extends Controller
         }
 
         return DB::transaction(function () use ($request, $user, $cart) {
-            // A. Tính tổng tiền
             $totalAmount = 0;
             foreach ($cart->items as $item) {
                 $totalAmount += $item->quantity * $item->variant->price;
             }
 
-            // B. Tạo Đơn hàng (Order)
             $order = Order::create([
                 'user_id' => $user->user_id,
                 'total_amount' => $totalAmount,
-                'status' => 'Pending', // Mặc định là Chờ xử lý
+                'status' => 'Pending', 
                 'shipping_address' => $request->shipping_address,
                 'payment_method' => $request->payment_method,
                 'order_date' => now()
             ]);
 
-            // C. Tạo Chi tiết đơn hàng (Order Items) & Trừ kho (nếu cần)
             foreach ($cart->items as $item) {
                 OrderItem::create([
                     'order_id' => $order->order_id,
                     'variant_id' => $item->variant_id,
                     'quantity' => $item->quantity,
-                    'unit_price' => $item->variant->price // Lưu giá tại thời điểm mua
+                    'unit_price' => $item->variant->price 
                 ]);
             }
 
-            // D. Xóa sạch giỏ hàng sau khi đặt thành công
+            // Xóa sạch giỏ hàng sau khi đặt thành công
             CartItem::where('cart_id', $cart->cart_id)->delete();
 
             return response()->json([
@@ -66,14 +63,13 @@ class OrderController extends Controller
         });
     }
 
-    // 2. XEM LỊCH SỬ ĐƠN HÀNG
+    // XEM LỊCH SỬ ĐƠN HÀNG
     public function index(Request $request)
     {
         $user = $request->user();
         
-        // Lấy danh sách đơn hàng, sắp xếp mới nhất lên đầu
         $orders = Order::where('user_id', $user->user_id)
-            ->with(['items.variant.product']) // Load chi tiết để hiển thị
+            ->with(['items.variant.product']) 
             ->orderBy('created_at', 'desc')
             ->get();
 

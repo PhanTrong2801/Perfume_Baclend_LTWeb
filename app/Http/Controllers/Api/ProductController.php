@@ -10,7 +10,6 @@ class ProductController extends Controller
 {
     public function index()
     {
-        // Lấy sản phẩm kèm theo các biến thể (dung tích) và thương hiệu
         $products = Product::with(['variants', 'brand'])->get();
         return response()->json($products);
     }

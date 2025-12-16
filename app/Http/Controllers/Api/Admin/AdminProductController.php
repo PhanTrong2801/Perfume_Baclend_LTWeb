@@ -26,14 +26,14 @@ class AdminProductController extends Controller
         return response()->json(['brands' => $brands, 'categories' => $categories]);
     }
 
-    //  Lấy chi tiết 1 sản phẩm (để sửa)
+    //  Lấy chi tiết 1 sản phẩm 
     public function show($id)
     {
         $product = Product::with(['variants', 'brand', 'category'])->findOrFail($id);
         return response()->json($product);
     }
 
-    // 4. THÊM SẢN PHẨM MỚI
+    //  THÊM SẢN PHẨM MỚI
     public function store(Request $request)
     {
         $request->validate([
@@ -44,7 +44,6 @@ class AdminProductController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
-            // A. Xử lý upload ảnh
             $imageUrl = '';
             if ($request->hasFile('thumbnail')) {
                 // Lưu vào folder 'products' trong storage/app/public
@@ -52,7 +51,7 @@ class AdminProductController extends Controller
                 $imageUrl = asset('storage/' . $path);
             }
 
-            // B. Tạo sản phẩm
+    
             $product = Product::create([
                 'product_name' => $request->product_name,
                 'description' => $request->description,
@@ -62,7 +61,6 @@ class AdminProductController extends Controller
                 'thumbnail' => $imageUrl
             ]);
 
-            // C. Tạo biến thể (Variants)
             if ($request->variants) {
                 $variants = json_decode($request->variants, true); 
                 foreach ($variants as $v) {
@@ -80,13 +78,13 @@ class AdminProductController extends Controller
         });
     }
 
-    // 5. CẬP NHẬT SẢN PHẨM
+
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
 
         return DB::transaction(function () use ($request, $product) {
-            // A. Cập nhật thông tin cơ bản
+            //  Cập nhật thông tin cơ bản
             $dataToUpdate = $request->only(['product_name', 'description', 'gender', 'brand_id', 'category_id']);
             
             if ($request->hasFile('thumbnail')) {
@@ -96,7 +94,7 @@ class AdminProductController extends Controller
 
             $product->update($dataToUpdate);
 
-            // B. Cập nhật biến thể 
+            // Cập nhật biến thể 
             if ($request->variants) {
                 $variants = json_decode($request->variants, true);
                 $existingVariantIds = $product->variants->pluck('variant_id')->toArray();
@@ -134,11 +132,10 @@ class AdminProductController extends Controller
         });
     }
 
-    // 6. XÓA SẢN PHẨM
+    //  XÓA SẢN PHẨM
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
-        // Xóa các biến thể trước (nếu database không set cascade)
         ProductVariant::where('product_id', $id)->delete();
         $product->delete();
         

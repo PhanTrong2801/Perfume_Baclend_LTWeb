@@ -13,7 +13,6 @@ class AuthController extends Controller
     // 1. Đăng ký
     public function register(Request $request)
     {
-        // Validate dữ liệu gửi lên
         $request->validate([
             'username' => 'required|string|unique:users',
             'full_name' => 'required|string',
@@ -21,13 +20,12 @@ class AuthController extends Controller
             'password' => 'required|min:6',
         ]);
 
-        // Tạo user mới
         $user = User::create([
             'username' => $request->username,
             'full_name' => $request->full_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'customer' // Mặc định là khách hàng
+            'role' => 'customer' 
         ]);
 
         // Tạo token đăng nhập luôn
@@ -40,7 +38,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // 2. Đăng nhập
+    //  Đăng nhập
     public function login(Request $request)
     {
         $request->validate([
@@ -48,7 +46,6 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Kiểm tra thông tin
         if (!Auth::attempt($request->only('username', 'password'))) {
             return response()->json([
                 'message' => 'Tài khoản hoặc mật khẩu không đúng'
@@ -66,14 +63,14 @@ class AuthController extends Controller
         ]);
     }
 
-    // 3. Đăng xuất (Xóa token)
+    // Đăng xuất (Xóa token)
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Đăng xuất thành công']);
     }
     
-    // 4. Lấy thông tin user đang đăng nhập
+  
     public function user(Request $request)
     {
         return response()->json($request->user());

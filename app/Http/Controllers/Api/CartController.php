@@ -13,30 +13,27 @@ class CartController extends Controller
     // Thêm vào giỏ hàng
     public function addToCart(Request $request)
     {
-        // 1. Validate dữ liệu gửi lên
         $request->validate([
             'variant_id' => 'required|exists:product_variants,variant_id',
             'quantity' => 'required|integer|min:1'
         ]);
 
-        $user = $request->user(); // Lấy user từ Token
+        $user = $request->user(); 
 
-        // 2. Tìm giỏ hàng của user, nếu chưa có thì tạo mới
+        // Tìm giỏ hàng của user, nếu chưa có thì tạo mới
         $cart = Cart::firstOrCreate(
             ['user_id' => $user->user_id]
         );
 
-        // 3. Kiểm tra sản phẩm này đã có trong giỏ chưa
+        // Kiểm tra sản phẩm này đã có trong giỏ chưa
         $cartItem = CartItem::where('cart_id', $cart->cart_id)
             ->where('variant_id', $request->variant_id)
             ->first();
 
         if ($cartItem) {
-            // Nếu có rồi thì cộng thêm số lượng
             $cartItem->quantity += $request->quantity;
             $cartItem->save();
         } else {
-            // Nếu chưa có thì tạo mới
             CartItem::create([
                 'cart_id' => $cart->cart_id,
                 'variant_id' => $request->variant_id,
@@ -47,13 +44,13 @@ class CartController extends Controller
         return response()->json(['message' => 'Đã thêm vào giỏ hàng thành công!']);
     }
 
-    // Lấy danh sách giỏ hàng (để dùng sau này)
+    // Lấy danh sách giỏ hàng 
     public function getCart(Request $request)
     {
         $user = $request->user();
         
         $cart = Cart::where('user_id', $user->user_id)
-            ->with(['items.variant.product']) // Load kèm thông tin sản phẩm để hiển thị
+            ->with(['items.variant.product']) 
             ->first();
 
         if (!$cart) {
@@ -84,7 +81,7 @@ class CartController extends Controller
         return response()->json(['message' => 'Cập nhật thành công']);
     }
 
-    // 2. Xóa sản phẩm khỏi giỏ
+    //  Xóa sản phẩm 
     public function removeItem(Request $request, $itemId)
     {
         $user = $request->user();

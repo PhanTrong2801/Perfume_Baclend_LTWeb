@@ -8,17 +8,17 @@ use App\Models\Order;
 
 class AdminOrderController extends Controller
 {
-    // 1. Lấy danh sách toàn bộ đơn hàng
+    //  Lấy danh sách toàn bộ đơn hàng
     public function index()
     {
-        $orders = Order::with(['user', 'items.variant.product']) // Load thông tin user và sản phẩm
+        $orders = Order::with(['user', 'items.variant.product']) 
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json($orders);
     }
 
-    // 2. Cập nhật trạng thái đơn hàng
+    // Cập nhật trạng thái 
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
