@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Brand;
 use App\Models\Category;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,9 +47,12 @@ class AdminProductController extends Controller
         return DB::transaction(function () use ($request) {
             $imageUrl = '';
             if ($request->hasFile('thumbnail')) {
-                // Lưu vào folder 'products' trong storage/app/public
-                $path = $request->file('thumbnail')->store('products', 'public');
-                $imageUrl = asset('storage/' . $path);
+               // Upload trực tiếp lên Cloudinary
+                $uploadedFileUrl = Cloudinary::upload($request->file('thumbnail')->getRealPath(), [
+                    'folder' => 'products'
+                ])->getSecurePath();
+
+                $imageUrl = $uploadedFileUrl;
             }
 
     
