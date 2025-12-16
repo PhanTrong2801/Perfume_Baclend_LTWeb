@@ -13,14 +13,12 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminProductController extends Controller
 {
-    // 1. Lấy danh sách sản phẩm (kèm thương hiệu, danh mục)
     public function index()
     {
         $products = Product::with(['brand', 'category', 'variants'])->orderBy('created_at', 'desc')->get();
         return response()->json($products);
     }
 
-    // 2. Lấy dữ liệu phụ trợ (Brands & Categories) để hiện trong Form thêm mới
     public function getFormData()
     {
         $brands = Brand::all();
@@ -28,7 +26,7 @@ class AdminProductController extends Controller
         return response()->json(['brands' => $brands, 'categories' => $categories]);
     }
 
-    // 3. Lấy chi tiết 1 sản phẩm (để sửa)
+    //  Lấy chi tiết 1 sản phẩm (để sửa)
     public function show($id)
     {
         $product = Product::with(['variants', 'brand', 'category'])->findOrFail($id);
@@ -38,12 +36,11 @@ class AdminProductController extends Controller
     // 4. THÊM SẢN PHẨM MỚI
     public function store(Request $request)
     {
-        // Validate cơ bản
         $request->validate([
             'product_name' => 'required',
             'brand_id' => 'required',
             'category_id' => 'required',
-            'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Bắt buộc là ảnh
+            'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         return DB::transaction(function () use ($request) {
@@ -52,7 +49,6 @@ class AdminProductController extends Controller
             if ($request->hasFile('thumbnail')) {
                 // Lưu vào folder 'products' trong storage/app/public
                 $path = $request->file('thumbnail')->store('products', 'public');
-                // Tạo đường dẫn http://.../storage/products/abc.jpg
                 $imageUrl = asset('storage/' . $path);
             }
 
@@ -67,7 +63,6 @@ class AdminProductController extends Controller
             ]);
 
             // C. Tạo biến thể (Variants)
-            // React sẽ gửi variants dạng chuỗi JSON: '[{"volume":"50ml","price":100},...]'
             if ($request->variants) {
                 $variants = json_decode($request->variants, true); 
                 foreach ($variants as $v) {
@@ -94,7 +89,6 @@ class AdminProductController extends Controller
             // A. Cập nhật thông tin cơ bản
             $dataToUpdate = $request->only(['product_name', 'description', 'gender', 'brand_id', 'category_id']);
             
-            // B. Nếu có ảnh mới thì upload và thay thế
             if ($request->hasFile('thumbnail')) {
                 $path = $request->file('thumbnail')->store('products', 'public');
                 $dataToUpdate['thumbnail'] = asset('storage/' . $path);
@@ -102,21 +96,37 @@ class AdminProductController extends Controller
 
             $product->update($dataToUpdate);
 
-            // C. Cập nhật biến thể (Xóa hết cái cũ tạo lại cho nhanh và an toàn logic)
+            // B. Cập nhật biến thể 
             if ($request->variants) {
-                // Xóa cũ
-                ProductVariant::where('product_id', $product->product_id)->delete();
-                
-                // Tạo mới
                 $variants = json_decode($request->variants, true);
+                $existingVariantIds = $product->variants->pluck('variant_id')->toArray();
+                $submittedVariantIds = [];
+
                 foreach ($variants as $v) {
-                    ProductVariant::create([
-                        'product_id' => $product->product_id,
-                        'volume' => $v['volume'],
-                        'price' => $v['price'],
-                        'stock_quantity' => $v['stock_quantity'],
-                        'sku' => $v['sku'] ?? $product->product_id . '-' . $v['volume']
-                    ]);
+                    if (isset($v['variant_id'])) {
+                        $submittedVariantIds[] = $v['variant_id'];
+                        ProductVariant::where('variant_id', $v['variant_id'])->update([
+                            'volume' => $v['volume'],
+                            'price' => $v['price'],
+                            'stock_quantity' => $v['stock_quantity'],
+                            'sku' => $v['sku']
+                        ]);
+                    } else {
+                        ProductVariant::create([
+                            'product_id' => $product->product_id,
+                            'volume' => $v['volume'],
+                            'price' => $v['price'],
+                            'stock_quantity' => $v['stock_quantity'],
+                            'sku' => $v['sku'] ?? $product->product_id . '-' . $v['volume']
+                        ]);
+                    }
+                }
+                $idsToDelete = array_diff($existingVariantIds, $submittedVariantIds);
+                if (!empty($idsToDelete)) {
+                    try {
+                        ProductVariant::destroy($idsToDelete);
+                    } catch (\Exception $e) {
+                    }
                 }
             }
 
